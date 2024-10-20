@@ -1,0 +1,45 @@
+[gd_scene load_steps=7 format=3 uid="uid://habmsbagxn0u"]
+
+[ext_resource type="Script" path="res://Components/Component.cs" id="1_l8h3y"]
+[ext_resource type="Texture2D" uid="uid://c31docqo0mlrg" path="res://TestComponent1.png" id="2_avl8b"]
+[ext_resource type="Texture2D" uid="uid://dtbwomcf2vj6r" path="res://TestComponent2.png" id="3_5g7qm"]
+[ext_resource type="PackedScene" uid="uid://u6jqqc81pkqs" path="res://Components/ConnectionPoint/ConnectionPoint.tscn" id="3_sqmp8"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_t182q"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_avl8b")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_5g7qm")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2dei6"]
+size = Vector2(32, 32)
+
+[node name="Component" type="Area2D"]
+position = Vector2(100, 100)
+script = ExtResource("1_l8h3y")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_t182q")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_2dei6")
+
+[node name="CPU1" parent="." instance=ExtResource("3_sqmp8")]
+position = Vector2(0, -16)
+
+[node name="CPD1" parent="." instance=ExtResource("3_sqmp8")]
+position = Vector2(0, 16)
+
+[node name="CPL1" parent="." instance=ExtResource("3_sqmp8")]
+position = Vector2(-16, 0)
+
+[node name="CPR1" parent="." instance=ExtResource("3_sqmp8")]
+position = Vector2(16, 0)
