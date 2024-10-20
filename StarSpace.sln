@@ -1,0 +1,19 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StarSpace", "StarSpace.csproj", "{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	Debug|Any CPU = Debug|Any CPU
+	ExportDebug|Any CPU = ExportDebug|Any CPU
+	ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{AFC172D4-D799-4C11-81E4-09DCAA08EBAF}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+	EndGlobalSection
+EndGlobal

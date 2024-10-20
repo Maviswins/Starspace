@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3 uid="uid://u6jqqc81pkqs"]
+
+[ext_resource type="Texture2D" uid="uid://bhgqhvn0h24v6" path="res://TestConnectionPoint1.png" id="1_6fstx"]
+[ext_resource type="Script" path="res://Components/ConnectionPoint/ConnectionPoint.cs" id="1_al72i"]
+[ext_resource type="Texture2D" uid="uid://c1q4s7cl6uf0x" path="res://TestConnectionPoint2.png" id="3_21d21"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_rq2lb"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_6fstx")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_21d21")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vambt"]
+size = Vector2(8, 8)
+
+[node name="ConnectionPoint" type="Area2D"]
+script = ExtResource("1_al72i")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_rq2lb")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_vambt")
