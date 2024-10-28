@@ -14,7 +14,7 @@ public partial class Component : Area2D
 	public AnimatedSprite2D anim;
 	public CollisionShape2D col;
 	public CompCollection RootCollection;
-
+	
 	public Main mainParent;
 
 	//Probably vestigial. To be removed.
@@ -52,10 +52,8 @@ public partial class Component : Area2D
 	//Largely for test purposes, will probably become vestigial.
 	private Random random= new();
 
-	public void InstantiateComponent()
-	{
-		InstantiatePoints();
-	}
+	public ConnectionPoint CurrentlySelected;
+
 
 	/// <summary>
 	/// Identify, categorise and store connection points in dict.
@@ -68,6 +66,7 @@ public partial class Component : Area2D
 			GD.Print(node.Name);
 			if (node is ConnectionPoint conPoint)
 			{
+				conPoint.Parent = this;
 				float rot = 0;
 				string n = conPoint.Name;
 				if (n.Contains('U'))
@@ -86,10 +85,8 @@ public partial class Component : Area2D
 				{
 					rot = 90;
 				}
-				conPoint.RotationOffset = rot;
+				conPoint.RotationDegrees = rot;
 				ConDict.Add(conPoint, null);
-				GD.Print(conPoint);
-				GD.Print(ConDict.Count);
 			}
 		}
 		GD.PrintRich(ConDict.Count + " connection points detected.");
@@ -110,18 +107,12 @@ public partial class Component : Area2D
 				col = c;
 			}
 		}
-
-		//Random spawn loc for now.
-		Position = new Vector2(random.Next(100, 200), random.Next(100, 200));
-
 		MouseEntered += OnMouseEntered;
         MouseExited += OnMouseExited;
 		AreaEntered += OnAreaEntered;
         AreaExited += OnAreaExited;
 
-		CheckOverlap();
-		InstantiateComponent();
-		//CheckForCollection();
+		InstantiatePoints();
 	}
 
 	public override void _Process(double delta)
@@ -133,39 +124,7 @@ public partial class Component : Area2D
 		// }
 	}
 
-	/// <summary>
-	/// Check whether this component is part of a collection and fix that if it isn't.
-	/// </summary>
-	public void CheckForCollection()
-	{
-		Node parent = GetParent();
-		if (parent != null)
-		{
-			if (parent is CompCollection collection)
-			{
-				//do nothing ur good.
-			}
-			else if (parent is Component component)
-			{
-				Node grandparent = component.GetParent();
-				{
-					if (grandparent is CompCollection grandcollection)
-					{
-						//do nothing ur good.
-					}
-				}
-			}
 
-			//If not part of a collection hierarchy, create a collection and assign self to it.
-			else if (parent is not CompCollection || parent is not Component)
-			{
-				if (parent is Main main)
-				{
-					GD.Print(parent);
-				}
-			}
-		}
-	}
 
 #region input shit
 	public override void _Input(InputEvent @event)
@@ -177,6 +136,7 @@ public partial class Component : Area2D
             if (mouseEvent.ButtonIndex == MouseButton.Left && _mouseIsOver)
             {
 				//create instance in the holder collection.
+				//Should probably make sure this doesn't clash with points.
             }
 
 			//If the right button has been pressed and mouse is over this component:
@@ -217,6 +177,19 @@ public partial class Component : Area2D
 		}
 	}
 
+	public List<ConnectionPoint> GetConnectionPoints()
+	{
+		List<ConnectionPoint> output = new();
+		foreach (Node n in GetChildren())
+		{
+			if (n is ConnectionPoint cp)
+			{
+				output.Add(cp);
+			}
+		}
+		return output;
+	}
+
 	/// <summary>
 	/// Check if this module is overlapping with another too much and if so, reposition it.
 	/// </summary>
@@ -235,16 +208,66 @@ public partial class Component : Area2D
 
 				if (intArea >= thisArea / (100 / OverlapThreshold) || intArea >= compArea / (100 / comparer.OverlapThreshold))
 				{
-					Scatter();
+					//Scatter();
 				}
 			}
 		}
+	}
+
+	public bool CheckOverlap(ConnectionPoint thisPoint, ConnectionPoint subjectPoint, Component subject)
+	{
+		Rectangle thisRect = GetSpriteRect(thisPoint);
+		int thisArea = thisRect.Width * thisRect.Height;
+		Rectangle subRect = subject.GetSpriteRect(subjectPoint);
+		int subArea = thisRect.Width * thisRect.Height;
+		Rectangle intersect = Rectangle.Intersect(subRect, thisRect);
+		int intArea = intersect.Width * intersect.Height;
+
+
+		if (intArea >= thisArea / (100 / OverlapThreshold) || intArea >= subArea / (100 / subject.OverlapThreshold))
+		{
+			return false;
+		}
+		return true;
+	}
+
+	public bool CheckOverlap(Rectangle r1, Rectangle r2)
+	{
+		int r1Area = r1.Width * r1.Height;
+		int r2Area = r2.Width * r2.Height;
+		Rectangle intersect = Rectangle.Intersect(r1, r2);
+		int intArea = intersect.Width * intersect.Height;
+
+
+		if (intArea >= r1Area / (100 / 20) || intArea >= r2Area / (100 / 20))
+		{
+			return false;
+		}
+		return true;
+	}
+
+	public Vector2 GetOffsetPosition(ConnectionPoint subject)
+	{
+		return Position - subject.Position;
+	}
+
+	public Rectangle GetSpriteRect(ConnectionPoint subject)
+	{
+		Vector2 offsetPosition = GetOffsetPosition(subject);
+		Vector2 dims = GetSpriteDims();
+		return new Rectangle(new Point((int)offsetPosition.X, (int)offsetPosition.Y), new Size((int)dims.X, (int)dims.Y));
 	}
 
 	public Rectangle GetSpriteRect()
 	{
 		Vector2 dims = GetSpriteDims();
 		return new Rectangle(new Point((int)Position.X, (int)Position.Y), new Size((int)dims.X, (int)dims.Y));
+	}
+
+	public Rectangle GetSpriteRect(Vector2 testPoint)
+	{
+		Vector2 dims = GetSpriteDims();
+		return new Rectangle(new Point((int)testPoint.X, (int)testPoint.Y), new Size((int)dims.X, (int)dims.Y));
 	}
 
 	public Vector2 GetSpriteDims()
@@ -271,7 +294,6 @@ public partial class Component : Area2D
 	/// </summary>
 	public bool HasAttachment(ConnectionPoint point)
 	{
-		
 		if (ConDict[point] != null)
 		{
 			return true;
@@ -303,27 +325,5 @@ public partial class Component : Area2D
 	{
 		IsRootComponent = false;
 		anim.Frame = 0;
-	}
-
-	public void NowSnapped(ConnectionPoint thisPoint, ConnectionPoint targetPoint, bool initiator = true)
-	{
-		IsSnapped = true;
-		SetAttachment(thisPoint, targetPoint);
-		//col.Disabled = true;
-		if (initiator)
-		{
-			RootCollection.MergeIntoCollection(targetPoint.RootNode.RootCollection);
-		}
-	}
-
-	public void NowUnSnapped(ConnectionPoint thisPoint, bool initiator = true)
-	{
-		IsSnapped = false;
-		SetAttachment(thisPoint, null);
-		//col.Disabled = false;
-		if (initiator)
-		{
-			
-		}
 	}
 }

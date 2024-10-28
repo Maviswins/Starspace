@@ -1,17 +1,21 @@
-[gd_scene load_steps=6 format=3 uid="uid://u6jqqc81pkqs"]
+[gd_scene load_steps=7 format=3 uid="uid://u6jqqc81pkqs"]
 
-[ext_resource type="Texture2D" uid="uid://bhgqhvn0h24v6" path="res://TestConnectionPoint1.png" id="1_6fstx"]
 [ext_resource type="Script" path="res://Components/ConnectionPoint/ConnectionPoint.cs" id="1_al72i"]
-[ext_resource type="Texture2D" uid="uid://c1q4s7cl6uf0x" path="res://TestConnectionPoint2.png" id="3_21d21"]
+[ext_resource type="Texture2D" uid="uid://bmyobjr46fpik" path="res://TestCPointRed.png" id="2_hv33f"]
+[ext_resource type="Texture2D" uid="uid://cd1gcd53j0i6t" path="res://TestCPointYellow.png" id="3_04esw"]
+[ext_resource type="Texture2D" uid="uid://dpsaa4kp3sl00" path="res://TestCPointGreen.png" id="4_kpsbw"]
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_rq2lb"]
 animations = [{
 "frames": [{
 "duration": 1.0,
-"texture": ExtResource("1_6fstx")
+"texture": ExtResource("2_hv33f")
 }, {
 "duration": 1.0,
-"texture": ExtResource("3_21d21")
+"texture": ExtResource("3_04esw")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_kpsbw")
 }],
 "loop": true,
 "name": &"default",

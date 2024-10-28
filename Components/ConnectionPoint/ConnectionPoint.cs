@@ -8,36 +8,38 @@ public partial class ConnectionPoint : Area2D
 	There will be one or more or these as children of every component. Their job is to facilitate the connection and disconnection of the parent with other components.
 	*/
 
-	//Reference to current attachment.
-	public ConnectionPoint Attachment = null;
 	public Vector2 LocationOffset;
 	public float RotationOffset;
+	public Vector2 LocationPositionOffset;
+	public bool IsSnapped;
+	public bool IsSelected;
+	public bool CanBeSnapped;
+	private bool _mouseIsOver = false;
+	public bool OverlappingAnotherConnectionPoint;
+	public ConnectionPoint OverlappedConnectionpoint;
+
+	private BuildMode BM;
 
 	private AnimatedSprite2D anim;
 
 	//Reference to parent component.
-	public Component RootNode;
-
-	public void InstantiatePoint(Component parent)
-	{
-
-	}
+	public Component Parent;
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		RootNode = GetOwner<Component>();
-        AreaEntered += OnAreaEntered;
-        AreaExited += OnAreaExited;
+		MouseEntered += OnMouseEntered;
+        MouseExited += OnMouseExited;
 
 		foreach (Node node in GetChildren())
 		{
 			if (node is AnimatedSprite2D a)
 			{
 				anim = a;
-				
 			}
 		}
+
+		BM = (BuildMode)GetParent().GetParent().GetParent();
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -45,74 +47,71 @@ public partial class ConnectionPoint : Area2D
 	{
 	}
 
-	private void OnAreaEntered(Area2D area)
+	public override void _Input(InputEvent @event)
     {
-        // Only apply any logic if this module is actively being dragged
-        // and only if we're colliding with another snap point
-        if (RootNode.IsBeingDragged && area is ConnectionPoint target)
+		//If a mouse button has done a thing:
+        if (@event is InputEventMouseButton mouseEvent)
         {
-            //If colliding snap point is not currently occupied:
-            if (!RootNode.HasAttachment(this))
+			//If the left button has been pressed and mouse is over this component:
+            if (mouseEvent.ButtonIndex == MouseButton.Left && mouseEvent.Pressed && _mouseIsOver)
             {
-                Vector2 snapPosition = target.GlobalPosition - Position;
-            
-                RootNode.Position = snapPosition;
-
-                // Set both this and its counterpart to snapped.
-                Snap(target);
+				BM.LeftClick(this);
             }
-        }
-    }
 
-    /// <summary>
-    /// If this snap point detects itself leaving another snap point it unsnaps.
-    /// </summary>
-    private void OnAreaExited(Area2D area)
-    {
-        if (RootNode.IsBeingDragged && area is ConnectionPoint target)
-        {
-			//Tell both parties of the attachment to unsnap.
-			if (RootNode.HasAttachment(this) && target.RootNode.HasAttachment(target))
+			//If the right button has been pressed and mouse is over this component:
+			else if (mouseEvent.ButtonIndex == MouseButton.Right && mouseEvent.Pressed && IsSelected)
 			{
-				//GD.Print(this);
-				UnSnap(target);
+				SetAsUnSelected();
+				BM.UpdateSelectionStatus(null);
 			}
-        }
+		}
     }
 
-	/// <summary>
-	/// Attach this point with the target.
-	/// </summary>
-	public void Snap(ConnectionPoint target, bool initiator = true)
-    {
-		if (initiator)
+	private void OnMouseEntered()
+	{
+		if (!_mouseIsOver)
 		{
-			target.Snap(this, false);
-			RootNode.NowSnapped(this, target);
+			GD.Print(Position);
 		}
-		else
+		//If not already snapped:
+		if (!IsSnapped)
 		{
-			RootNode.NowSnapped(this, target, false);
+			Scale = new Vector2(2, 2);
+			_mouseIsOver = true;
 		}
-		Attachment = target;
+	}
+
+	private void OnMouseExited()
+	{
+		if (!IsSelected)
+		{
+			Scale = new Vector2(1, 1);
+		}
+		_mouseIsOver = false;
+	}
+
+	public void SetAsAttached()
+	{
+		anim.Frame = 2;
+		IsSnapped = true;
+	}
+
+	public void SetAsUnAttached()
+	{
+		anim.Frame = 0;
+		IsSnapped = false;
+	}
+
+	public void SetAsSelected()
+	{
 		anim.Frame = 1;
-    }
+		IsSelected = true;
+	}
 
-	/// <summary>
-	/// Unsnap this point from the target.
-	/// </summary>
-    public void UnSnap(ConnectionPoint target, bool initiator = true)
-    {
-		if (initiator)
-		{
-			target.UnSnap(this, false);
-			RootNode.NowUnSnapped(this, true);
-		}
-		else
-		{
-			RootNode.NowUnSnapped(target, false);
-		}
-		Attachment = null;
-        anim.Frame = 0;
-    }
+	public void SetAsUnSelected()
+	{
+		anim.Frame = 0;
+		IsSelected = false;
+		Scale = new Vector2(1, 1);
+	}
 }

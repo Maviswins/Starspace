@@ -7,13 +7,19 @@ using System.Linq;
 public partial class Utilities : Node
 {
     public static Node CurrentScene;
+    public static Vector2 AngleRotate (Vector2 input, float rotation)
+	{
+		Vector2 output = input;
+		input = Vector2.FromAngle(rotation);
+		return output;
+	}
 
     #region node management
 
     /// <summary>
     /// Safely add a component to a compcollection.
     /// </summary>
-    private static void AddChildDeferred(Component subject, CompCollection target)
+    public static void AddChildDeferred(Component subject, CompCollection target)
     {
         if (subject != null && target != null)
         {
@@ -29,7 +35,7 @@ public partial class Utilities : Node
     /// <summary>
     /// Safely add a collection to a parent node.
     /// </summary>
-    private static void AddChildDeferred(CompCollection subject, Node target)
+    public static void AddChildDeferred(CompCollection subject, Node target)
     {
         if (subject != null && target != null)
         {
@@ -45,7 +51,7 @@ public partial class Utilities : Node
     /// <summary>
     /// Safely remove a child component from parent.
     /// </summary>
-    private static void RemoveChildDeferred(Component subject)
+    public static void RemoveChildDeferred(Component subject)
     {
         if (subject != null)
         {
@@ -118,7 +124,7 @@ public partial class Utilities : Node
                     //Add it.
                     AddChildDeferred(target, subject);
                 }
-                target.InitialiseComponent(subject);
+                //target.InitialiseComponent(subject);
             }
         }
     }
@@ -133,7 +139,7 @@ public partial class Utilities : Node
             if (subject.GetParent() == target)
             {
                 RemoveChildDeferred(subject);
-                target.SanitiseComponent(subject);
+                //target.SanitiseComponent(subject);
             }
         }
     }
@@ -187,19 +193,19 @@ public partial class Utilities : Node
     /// <summary>
 	/// Merge this collection into the target collection.
 	/// </summary>
-	public static void MergeIntoCollection(CompCollection subject, CompCollection target)
-	{
-		//Basic check to ensure the cockpit isn't being merged into another collection. Swap roles if so.
-		if (subject.HasCockpit)
-		{
-			MergeIntoCollection(target, subject);
-		}
-		else
-		{
-            List<Component> outflow = RemoveAllComponentsFromCollection(subject);
-            AddMultipleComponentsToCollection(outflow, target);
-		}
-	}
+	// public static void MergeIntoCollection(CompCollection subject, CompCollection target)
+	// {
+	// 	//Basic check to ensure the cockpit isn't being merged into another collection. Swap roles if so.
+	// 	if (subject.HasCockpit)
+	// 	{
+	// 		MergeIntoCollection(target, subject);
+	// 	}
+	// 	else
+	// 	{
+    //         List<Component> outflow = RemoveAllComponentsFromCollection(subject);
+    //         AddMultipleComponentsToCollection(outflow, target);
+	// 	}
+	// }
 
     /// <summary>
     /// Try to split a collection into two or more collections using the subject component as a breakpoint.
@@ -438,11 +444,12 @@ public partial class Utilities : Node
     /// <summary>
     /// Create a new component and a container collection.
     /// </summary>
-    public static Component InstantiateNewComponent()
+    public static Component InstantiateNewComponent(CompCollection parent)
     {
         PackedScene componentPointScene = GD.Load<PackedScene>("res://Components/Component.tscn");
 		Component c = componentPointScene.Instantiate<Component>();
-        CompCollection cc = InstantiateNewCollection(c);
+        AddChildDeferred(c, parent);
+        c.Position = parent.Position;
         return c;
     }
 
