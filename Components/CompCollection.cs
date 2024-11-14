@@ -28,16 +28,19 @@ public partial class CompCollection : Node2D
 		{
 			while (checkList.Any())
 			{
-				Component current = checkList.Dequeue();
+				Component currentSubject = checkList.Dequeue();
 				List<Component> remainingComponents = checkList.ToList();
-				List<ConnectionPoint> currentPoints = GetAllConnectionPoints(current);
+				List<ConnectionPoint> currentPoints = GetAllConnectionPoints(currentSubject);
 
 				foreach (ConnectionPoint currentPoint in currentPoints)
 				{
-					Vector2 position = current.Position + currentPoint.Position;
-					if (OtherCPAtPosition(position, remainingComponents))
+					Vector2 pointPos = GetGlobalPointPos(currentSubject, currentPoint);
+					//GD.Print("Checking " + pointPos);
+					ConnectionPoint attachedPoint = OtherCPAtPosition(pointPos, remainingComponents);
+					if (attachedPoint != null)
 					{
-						currentPoint.SetAsAttached();
+						currentPoint.SetAsAttached(attachedPoint);
+						attachedPoint.SetAsAttached(currentPoint);
 					}
 					if (currentPoint.IsSelected)
 					{
@@ -48,21 +51,37 @@ public partial class CompCollection : Node2D
 		}
 	}
 
-	public bool OtherCPAtPosition(Vector2 checkPosition, List<Component> components)
+	public ConnectionPoint OtherCPAtPosition(Vector2 comparer, List<Component> components)
 	{
-		foreach (Component component in components)
+		foreach (Component subject in components)
 		{
-			List<ConnectionPoint> conPoints = GetAllConnectionPoints(component);
-			foreach (ConnectionPoint currentPoint in conPoints)
+			List<ConnectionPoint> conPoints = GetAllConnectionPoints(subject);
+			foreach (ConnectionPoint subjectPoint in conPoints)
 			{
-				if (component.Position + currentPoint.Position == checkPosition)
+				// Vector2 check = GetGlobalPointPos(subject, subjectPoint);
+				//string report = "";
+				//report += "against ";
+				//report += check;
+				if (GetGlobalPointPos(subject, subjectPoint) == comparer)
 				{
-					currentPoint.SetAsAttached();
-					return true;
+					//report += " true";
+					//GD.Print(report);
+					return subjectPoint;
 				}
+				//report += " false";
+				//GD.Print(report);
 			}
 		}
-		return false;
+		return null;
+	}
+
+	private Vector2 GetGlobalPointPos(Component subject, ConnectionPoint point)
+	{
+		Vector2 subjectPos = subject.GlobalPosition;
+		Vector2 pointPos = point.GlobalPosition;
+		Vector2 globalPointPos = subjectPos - pointPos;
+		Vector2 output = subject.Position - globalPointPos;
+		return output;
 	}
 
 	//Add a component to this collection.

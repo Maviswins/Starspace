@@ -210,145 +210,299 @@ public partial class Utilities : Node
     /// <summary>
     /// Try to split a collection into two or more collections using the subject component as a breakpoint.
     /// </summary>
-    public static void SplitCollection(CompCollection parent, Component subject, bool killComponent = false)
-    {
-        List<Component> floodFrom = new();
-        List<List<Component>> splits = new();
+    // public static void SplitCollection(CompCollection parent, Component subject, bool killComponent = false, bool destroyAll = false)
+    // {
+    //     List<Component> floodFrom = new();
+    //     List<List<Component>> splits = new();
 
-        //If subject component is the proper origin of the flood:
-        if (!killComponent)
-        {
-            floodFrom.Add(subject);
-        }
+    //     //If subject component is the proper origin of the flood:
+    //     if (!killComponent)
+    //     {
+    //         floodFrom.Add(subject);
+    //     }
 
-        //If the subject is to be ignored, begin flood from its attachments.
-        else if (killComponent)
-        {
-            floodFrom = GetAttachedComponents(parent, subject);
-        }
+    //     //If the subject is to be ignored, begin flood from its attachments.
+    //     else if (killComponent)
+    //     {
+    //         floodFrom = GetAttachedComponents(parent, subject);
+    //     }
         
-        //Iteratively add split lists to the main container.
-        foreach (Component origin in floodFrom)
+    //     //Iteratively add split lists to the main container.
+    //     foreach (Component origin in floodFrom)
+    //     {
+    //         splits.Add(RunFloodLoop(parent, origin, subject, killComponent));
+    //     }
+
+    //     GD.Print(splits.Count);
+    //     foreach (List<Component> list in splits)
+    //     {
+    //         GD.Print(list.Count);
+    //     }
+
+    //     //Weed out any blank splits or duplicates.
+    //     ValidateSplits(splits, subject, killComponent);
+
+    //     //Actually do the split.
+    //     FinaliseSplitCollection(splits, floodFrom, destroyAll);
+    // }
+
+    /// <summary>
+    /// Return a list of components, flooded from source component, that can be split off from a collection.
+    /// </summary>
+    public static List<Component> SplitCollection(CompCollection parent, Component source)
+    {
+        List<Component> floodComponents = RunFloodLoop(parent, source);
+
+        if (!floodComponents.Contains(source))
         {
-            splits.Add(RunFloodLoop(parent, origin, subject, killComponent));
+            floodComponents.Add(source);
         }
-
-        //Weed out any blank splits or duplicates.
-        ValidateSplits(splits, subject, killComponent);
-
-        //Actually do the split.
-        FinaliseSplitCollection(splits, floodFrom);
+        return floodComponents;
     }
 
     /// <summary>
-    /// Flood from a given component, iteratively adding to output unless certain criteria are hit.
+    /// Return a list of valid components by tracing connections outward from a source component.
     /// </summary>
-    private static List<Component> RunFloodLoop(CompCollection parent, Component origin, Component killedComp, bool killComponent)
+    /// <param name="parent">Parent collection.</param>
+    /// <param name="source">Origin of the flood.</param>
+    private static List<Component> RunFloodLoop(CompCollection parent, Component source)
     {
-        //Add flood origin as first item.
-        Queue<Component> splitCandidates = new();
-        splitCandidates.Enqueue(origin);
+        //Set up candidate and burndown queues. Enqueue the source component to it.
+        Queue<Component> candidates = new();
+        Queue<Component> burndown = new();
+        candidates.Enqueue(source);
 
-        //Loop control.
-        int QueueCount = 0;
-        int killCounter = 0;
-		bool killLoop = false;
+        //Set up monitors for preventing forever loops.
+        int candCount = 0;
+        int killCount = 0;
+        bool killLoop = false;
 
-		while (!killLoop)
+        while (killLoop)
         {
-            //Queue will be cleared if burndown occurs.
-            if (splitCandidates.Any())
+            //Update the queue counter.
+            candCount = candidates.Count;
+
+            //Take the top component from candidate queue.
+            Component subject = candidates.Dequeue();
+            
+            //Identify attachments and set up a buffer.
+            List<Component> attachments = GetAttachedComponents(parent, subject);
+            List<Component> buffer = new();
+
+            foreach (Component attachment in attachments)
             {
-                Component currentSubject = splitCandidates.Dequeue();
-
-                //Find attachments for dequeued component.
-                List<Component> attachments = GetAttachedComponents(parent, currentSubject);
-                foreach (Component attachment in attachments)
+                //If a given component should not trigger a burndown:
+                if (!CheckForBurndown(parent, attachment, burndown))
                 {
-                    //Check if each attachment warrants a burndown.
-                    if (!CheckForBurndown(parent, attachment))
+                    //If given component is not in buffer or candidates queue
+                    if (!candidates.Contains(attachment) && !buffer.Contains(attachment))
                     {
-                        //Check if each attachment is a valid addition to the queue.
-                        if (CheckForSplitQueue(attachment, killedComp, splitCandidates, killComponent))
-                        {
-                            //If all good enqueue the attachment.
-                            splitCandidates.Enqueue(attachment);
-                        }
-                    }
-
-                    //Burn down the whole queue and kill the loop if warranted.
-                    else
-                    {
-                        splitCandidates.Clear();
-                        killLoop = true;
-                        break;
+                        //Add component to the buffer
+                        buffer.Add(attachment);
                     }
                 }
-
-                //If queue hasn't been burned down, re-add the subject of the last loop.
-                if (splitCandidates.Any())
-                {
-                    if (splitCandidates.Contains(currentSubject))
-                    {
-                        splitCandidates.Enqueue(currentSubject);
-                    }
-                }
-
-                //If queue has been burned down, ensure the origin remains as the sole output.
-                else if (!splitCandidates.Any())
-                {
-                    if (splitCandidates.Contains(origin))
-                    {
-                        splitCandidates.Enqueue(origin);
-                    }
-                }
-
-                //If the queue hasn't changed in size this loop, up the kill counter.
-                if (splitCandidates.Count == QueueCount)
-                {
-                    killCounter++;
-                }
-
-                //Update the count checker if queue size differs.
+                //If burndown triggered:
                 else
                 {
-                    QueueCount = splitCandidates.Count;
-                }
-
-                if (killCounter > 20)
-                {
-                    killLoop = true;
+                    //Add component to burndown queue if not already present.
+                    if (!burndown.Contains(attachment))
+                    {
+                        burndown.Enqueue(attachment);
+                    }
+                    //Enqueue the current subject component.
+                    burndown.Enqueue(subject);
+                    //Clear the buffer
+                    buffer.Clear();
+                    //Break the current subloop.
+                    break;
                 }
             }
-            else
+            //Add any applicable components from the buffer to the candidate list then tidu up buffer.
+            if (buffer.Any())
+            {
+                foreach (Component buffered in buffer)
+                {
+                    if (!candidates.Contains(buffered) && !burndown.Contains(buffered))
+                    {
+                        candidates.Enqueue(buffered);
+                    }
+                }
+                buffer.Clear();
+            }
+
+            //Add the subject component back to the candidates queue if not present elsewhere.
+            if (!candidates.Contains(subject) && !burndown.Contains(subject))
+            {
+                candidates.Enqueue(subject);
+            }
+
+            //If candidates queue hasn't changed this loop, increment killCount.
+            if (candidates.Count == candCount)
+            {
+                killCount++;
+            }
+
+            //Kill the loop if killCount has reached threshold.
+            if (killCount > 20)
             {
                 killLoop = true;
             }
         }
 
-        //Output as list because fuck queues.
+        //Create output list, add any candidates in queue and return it.
         List<Component> output = new();
-        if (splitCandidates.Any())
+        if (candidates.Any())
         {
-            output = splitCandidates.ToList();
+            output = candidates.ToList();
         }
         return output;
     }
 
+    // /// <summary>
+    // /// Flood from a given component, iteratively adding to output unless certain criteria are hit.
+    // /// </summary>
+    // private static List<Component> RunFloodLoop(CompCollection parent, Component origin, Component killedComp, bool killComponent)
+    // {
+    //     //Add flood origin as first item.
+    //     Queue<Component> splitCandidates = new();
+    //     splitCandidates.Enqueue(origin);
+
+    //     //Loop control.
+    //     int QueueCount = 0;
+    //     int killCounter = 0;
+	// 	bool killLoop = false;
+
+	// 	while (!killLoop)
+    //     {
+    //         //Queue will be cleared if burndown occurs.
+    //         if (splitCandidates.Any())
+    //         {
+    //             GD.Print("queue ct = " + splitCandidates.Count);
+    //             Component currentSubject = splitCandidates.Dequeue();
+
+    //             //Find attachments for dequeued component.
+    //             List<Component> attachments = GetAttachedComponents(parent, currentSubject);
+    //             GD.Print("attached = " + attachments.Count);
+    //             foreach (Component attachment in attachments)
+    //             {
+    //                 //Check if each attachment warrants a burndown.
+    //                 if (!CheckForBurndown(parent, attachment))
+    //                 {
+    //                     GD.Print("no burndown...");
+    //                     //Check if each attachment is a valid addition to the queue.
+    //                     if (CheckForSplitQueue(attachment, killedComp, splitCandidates, killComponent))
+    //                     {
+    //                         GD.Print("not in queue...");
+    //                         //If all good enqueue the attachment.
+    //                         splitCandidates.Enqueue(attachment);
+    //                         GD.Print("added item to queue");
+    //                     }
+    //                 }
+
+    //                 //Burn down the whole queue and kill the loop if warranted.
+    //                 else
+    //                 {
+    //                     GD.Print("burndown!");
+    //                     splitCandidates.Clear();
+    //                     killLoop = true;
+    //                     break;
+    //                 }
+    //             }
+
+    //             //If queue hasn't been burned down, re-add the subject of the last loop.
+    //             if (splitCandidates.Any())
+    //             {
+    //                 if (splitCandidates.Contains(currentSubject))
+    //                 {
+    //                     splitCandidates.Enqueue(currentSubject);
+    //                 }
+    //             }
+
+    //             //If queue has been burned down, ensure the origin remains as the sole output.
+    //             else if (!splitCandidates.Any())
+    //             {
+    //                 if (splitCandidates.Contains(origin))
+    //                 {
+    //                     splitCandidates.Enqueue(origin);
+    //                 }
+    //             }
+
+    //             //If the queue hasn't changed in size this loop, up the kill counter.
+    //             if (splitCandidates.Count == QueueCount)
+    //             {
+    //                 killCounter++;
+    //             }
+
+    //             //Update the count checker if queue size differs.
+    //             else
+    //             {
+    //                 QueueCount = splitCandidates.Count;
+    //             }
+
+    //             if (killCounter > 20)
+    //             {
+    //                 killLoop = true;
+    //             }
+    //         }
+    //         else
+    //         {
+    //             killLoop = true;
+    //         }
+    //     }
+
+    //     //Output as list because fuck queues.
+    //     List<Component> output = new();
+    //     if (splitCandidates.Any())
+    //     {
+    //         output = splitCandidates.ToList();
+    //     }
+    //     return output;
+    // }
+
     /// <summary>
     /// Instantiate a number of new collections based off the final results from the split logic.
     /// </summary>
-    private static void FinaliseSplitCollection(List<List<Component>> splits, List<Component> origins)
+    private static void FinaliseSplitCollection(List<List<Component>> splits, List<Component> origins, bool destroyAll)
     {
-        foreach (Component origin in origins)
+        if (!destroyAll)
         {
+            foreach (Component origin in origins)
+            {
+                foreach (List<Component> split in splits)
+                {
+                    //Basic check to match split lists and root components.
+                    if (split.Contains(origin))
+                    {
+                        AddMultipleComponentsToCollection(split, InstantiateNewCollection(origin));
+                    }
+                }
+            }
+        }
+        else if (destroyAll)
+        {
+            Queue<Component> killQueue = new();
             foreach (List<Component> split in splits)
             {
-                //Basic check to match split lists and root components.
-                if (split.Contains(origin))
+                foreach (Component subject in split)
                 {
-                    AddMultipleComponentsToCollection(split, InstantiateNewCollection(origin));
+                    if (!killQueue.Contains(subject))
+                    {
+                        killQueue.Enqueue(subject);
+                    }
                 }
+            }
+            foreach (Component subject in origins)
+            {
+                if (!killQueue.Contains(subject))
+                {
+                    killQueue.Enqueue(subject);
+                }
+            }
+            while (killQueue.Any())
+            {
+                Component subject = killQueue.Dequeue();
+                RemoveComponentFromCollection(subject, (CompCollection)subject.GetParent());
+                subject.Dispose();
             }
         }
     }
@@ -384,10 +538,10 @@ public partial class Utilities : Node
     /// <summary>
     /// Check if a component should trigger a burndown
     /// </summary>
-    private static bool CheckForBurndown(CompCollection parent, Component subject)
+    private static bool CheckForBurndown(CompCollection parent, Component subject, Queue<Component> burndownQueue)
     {
-        //If it's not in the collection for some reason, null, or is the root of the parent collection:
-        if (!CollectionHasComponent(parent, subject) || subject is null || subject == parent.RootComponent)
+        //If it's not in the collection for some reason, null, is the root of the parent collection or in the burndown queue:
+        if (!CollectionHasComponent(parent, subject) || subject is null || subject == parent.RootComponent || burndownQueue.Contains(subject))
         {
             return true;
         }

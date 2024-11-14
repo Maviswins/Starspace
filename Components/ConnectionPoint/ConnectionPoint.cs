@@ -71,7 +71,9 @@ public partial class ConnectionPoint : Area2D
 	{
 		if (!_mouseIsOver)
 		{
-			GD.Print(Position);
+			// GD.Print(Position);
+			// GD.Print(RotationDegrees);
+			// GD.Print(GlobalRotationDegrees);
 		}
 		//If not already snapped:
 		if (!IsSnapped)
@@ -94,6 +96,13 @@ public partial class ConnectionPoint : Area2D
 	{
 		anim.Frame = 2;
 		IsSnapped = true;
+	}
+
+	public void SetAsAttached(ConnectionPoint target)
+	{
+		anim.Frame = 2;
+		IsSnapped = true;
+		Parent.SetAttachment(this, target);
 	}
 
 	public void SetAsUnAttached()

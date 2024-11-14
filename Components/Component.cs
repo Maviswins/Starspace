@@ -44,6 +44,8 @@ public partial class Component : Area2D
 	//How overlapped this component can tolerate (% of area)
 	public float OverlapThreshold = 20;
 
+	public BuildMode BM;
+
 	public bool IsCockpit;
 	
 	//Tracking and calculating overlaps. Currently only works for a single other item and may need changing.
@@ -135,14 +137,15 @@ public partial class Component : Area2D
 			//If the left button has been pressed and mouse is over this component:
             if (mouseEvent.ButtonIndex == MouseButton.Left && _mouseIsOver)
             {
-				//create instance in the holder collection.
-				//Should probably make sure this doesn't clash with points.
             }
 
 			//If the right button has been pressed and mouse is over this component:
-			else if (mouseEvent.ButtonIndex == MouseButton.Right && _mouseIsOver)
+			else if (mouseEvent.ButtonIndex == MouseButton.Right && mouseEvent.Pressed && _mouseIsOver)
 			{
-				//to be determined.
+				if (BM != null)
+				{
+					BM.RightClick(this);
+				}
 			}
 		}
     }
